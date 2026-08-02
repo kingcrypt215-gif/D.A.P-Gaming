@@ -23,7 +23,7 @@
             align-items: center;
             justify-content: center;
             z-index: 99999;
-            transition: opacity 0.8s ease, visibility 0.8s ease;
+            transition: opacity 1s ease, visibility 1s ease;
         }
 
         .splash-logo-container {
@@ -46,7 +46,7 @@
             border-top-color: #d4af37;
             border-right-color: #aa8c2c;
             border-bottom-color: rgba(212, 175, 55, 0.2);
-            animation: spinRing 1.2s linear infinite;
+            animation: spinRing 1.5s linear infinite;
         }
 
         @keyframes spinRing {
@@ -79,7 +79,7 @@
         }
 
         .loading-bar-container {
-            width: 200px;
+            width: 220px;
             height: 4px;
             background: #222;
             border-radius: 2px;
@@ -91,7 +91,8 @@
             width: 0%;
             height: 100%;
             background: #d4af37;
-            animation: loadProgress 2s forwards;
+            /* Extended duration to match the longer linger time */
+            animation: loadProgress 3.8s forwards ease-in-out;
         }
 
         @keyframes loadProgress {
@@ -328,13 +329,13 @@
     </div>
 
     <script>
-        // Splash screen auto-dismiss timer (fades out after 2.3 seconds)
+        // Extended splash screen timer (lingers for 4 seconds before fading out)
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
                 splash.style.opacity = '0';
                 splash.style.visibility = 'hidden';
-            }, 2300);
+            }, 4000);
             renderDashboard();
         });
 
