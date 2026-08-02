@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+            <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -303,7 +303,7 @@
                 <div class="horizontal-rail" id="railFeatured"></div>
             </div>
             
-            <!-- Dynamic feed categories automatically inject their rails right below here -->
+            <!-- Major categorized rails will inject automatically below -->
         </div>
     </div>
 
@@ -344,14 +344,13 @@
             });
         }
 
-        // 2. LIVE GAMEPIX JSON FEED PARSER & DYNAMIC RAIL BUILDER
+        // 2. LIVE GAMEPIX JSON FEED PARSER & SMARTER CATEGORY BUILDER
         function fetchAndAutoBuildCategories() {
             const feedUrl = "https://feeds.gamepix.com/v2/json?sid=R7K2K&pagination=96&page=1";
 
             fetch(feedUrl)
                 .then(response => response.json())
                 .then(data => {
-                    // GamePix typically wraps items inside a data or items array, or returns the array directly
                     const gamesList = Array.isArray(data) ? data : (data.data || data.items || []);
                     organizeAndBuildRails(gamesList);
                 })
@@ -360,25 +359,42 @@
                 });
         }
 
+        // Maps sub-categories into clean, major buckets so rails are full and robust
+        function getMajorCategory(rawCategory) {
+            if (!rawCategory) return "Arcade & Classics";
+            let cat = String(rawCategory).toLowerCase();
+
+            if (cat.includes('action') || cat.includes('shooter') || cat.includes('fight') || cat.includes('adventure')) {
+                return "Action & Adventure";
+            } else if (cat.includes('puzzle') || cat.includes('brain') || cat.includes('logic') || cat.includes('strategy')) {
+                return "Strategy & Puzzles";
+            } else if (cat.includes('sport') || cat.includes('race') || cat.includes('driving') || cat.includes('football') || cat.includes('soccer')) {
+                return "Sports & Racing";
+            } else if (cat.includes('arcade') || cat.includes('retro') || cat.includes('casual')) {
+                return "Arcade & Classics";
+            } else {
+                return "Trending Hits";
+            }
+        }
+
         function organizeAndBuildRails(gamesArray) {
             const categoriesMap = {};
 
             gamesArray.forEach(game => {
-                // Adjust property names based on GamePix JSON schema (falling back gracefully)
-                let catName = game.category || (game.categories && game.categories[0]) || "Arcade & Classics";
-                if (typeof catName === 'object' && catName.name) catName = catName.name;
-                catName = String(catName).trim();
-                catName = catName.charAt(0).toUpperCase() + catName.slice(1);
+                let rawCat = game.category || (game.categories && game.categories[0]) || "";
+                if (typeof rawCat === 'object' && rawCat.name) rawCat = rawCat.name;
+                
+                const majorCat = getMajorCategory(rawCat);
 
-                if (!categoriesMap[catName]) {
-                    categoriesMap[catName] = [];
+                if (!categoriesMap[majorCat]) {
+                    categoriesMap[majorCat] = [];
                 }
-                categoriesMap[catName].push(game);
+                categoriesMap[majorCat].push(game);
             });
 
             const container = document.getElementById('dynamicDashboardContainer');
 
-            // Build a visual horizontal rail for each unique category found in your 96-game batch
+            // Build a visual horizontal rail for each major category bucket
             for (const [categoryName, gamesList] of Object.entries(categoriesMap)) {
                 const section = document.createElement('div');
                 section.className = 'rail-section';
@@ -392,7 +408,9 @@
 
                 gamesList.forEach(game => {
                     const title = game.title || game.name || "Untitled Game";
-                    const thumbnail = game.thumbnail_url || game.thumbnail || game.image || "";
+                    
+                    // Pulls high-res artwork or high-definition thumbnail property to ensure clarity
+                    const thumbnail = game.high_thumbnail || game.thumbnail_url || game.thumbnail || game.image || "";
                     const url = game.url || game.link || "#";
                     
                     railDiv.appendChild(createGameCard(title, thumbnail, url));
