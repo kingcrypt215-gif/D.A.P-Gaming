@@ -323,7 +323,7 @@
             z-index: 99999;
         }
 
-        /* Floating Exit Button with TV D-Pad Focus Support */
+        /* Floating Exit Button with Auto-Fade & Smart Dismiss */
         .floating-exit-btn {
             position: fixed;
             top: 15px;
@@ -361,11 +361,11 @@
             display: block;
         }
 
-        /* Touch / Remote Corner Trigger Zone */
+        /* Touch / Remote Corner Trigger Zone (Slimmed down to prevent overlap) */
         #touch-helper-zone {
             position: fixed;
             top: 0; right: 0;
-            width: 140px; height: 140px;
+            width: 90px; height: 90px;
             z-index: 100004;
             display: none;
         }
@@ -443,6 +443,7 @@
         ];
 
         let pendingGameUrl = "";
+        let exitButtonTimer = null;
 
         function renderFeaturedRail() {
             const container = document.getElementById('railFeatured');
@@ -547,7 +548,7 @@
         function createGameCard(title, thumbnail, url) {
             const card = document.createElement('div');
             card.className = 'game-card';
-            card.setAttribute('tabindex', '0'); // Make cards focusable via TV remotes & controllers
+            card.setAttribute('tabindex', '0');
             
             const fallbackImg = 'https://via.placeholder.com/500x250/111111/d4af37?text=' + encodeURIComponent(title);
             const activeThumb = thumbnail ? thumbnail : fallbackImg;
@@ -603,7 +604,6 @@
             overlay.style.display = 'block';
             touchZone.style.display = 'block';
 
-            // Auto-focus the game iframe so gamepads and keyboard inputs pipe directly into the game
             setTimeout(() => {
                 iframe.focus();
             }, 500);
@@ -619,6 +619,18 @@
             overlay.style.display = 'none';
             touchZone.style.display = 'none';
             btn.classList.remove('visible');
+            if (exitButtonTimer) clearTimeout(exitButtonTimer);
+        }
+
+        // Helper to show exit button with an auto-hide timer so it never blocks game UI permanently
+        function triggerAutoShowExitButton() {
+            const btn = document.getElementById('exitBtn');
+            btn.classList.add('visible');
+            
+            if (exitButtonTimer) clearTimeout(exitButtonTimer);
+            exitButtonTimer = setTimeout(() => {
+                btn.classList.remove('visible');
+            }, 3000); // Hides automatically after 3 seconds of inactivity
         }
 
         // Desktop Mouse Listener
@@ -626,28 +638,32 @@
             const overlay = document.getElementById('game-overlay');
             if (overlay.style.display === 'block') {
                 const btn = document.getElementById('exitBtn');
-                if (e.clientY < 100 || e.clientX > window.innerWidth - 150) {
+                if (e.clientY < 80 || e.clientX > window.innerWidth - 120) {
                     btn.classList.add('visible');
-                } else {
-                    btn.classList.remove('visible');
+                    if (exitButtonTimer) clearTimeout(exitButtonTimer);
                 }
             }
         });
 
-        // Mobile Touch Toggle
+        // Mobile Touch Toggle with Auto-Timer
         function toggleExitButtonMobile(e) {
             e.stopPropagation();
-            const btn = document.getElementById('exitBtn');
-            btn.classList.toggle('visible');
+            triggerAutoShowExitButton();
         }
 
-        // Global 2-Finger Touch Backup
+        // Global Touch Listener: Tapping anywhere else on screen instantly hides the exit button out of the way
         document.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                const overlay = document.getElementById('game-overlay');
-                if (overlay.style.display === 'block') {
+            const overlay = document.getElementById('game-overlay');
+            if (overlay.style.display === 'block') {
+                if (e.touches.length === 2) {
+                    triggerAutoShowExitButton();
+                } else {
+                    // Tap outside corner zone dismisses it immediately so it doesn't block gameplay
                     const btn = document.getElementById('exitBtn');
-                    btn.classList.toggle('visible');
+                    if (e.touches[0].clientX < window.innerWidth - 120 || e.touches[0].clientY > 90) {
+                        btn.classList.remove('visible');
+                        if (exitButtonTimer) clearTimeout(exitButtonTimer);
+                    }
                 }
             }
         }, { passive: true });
@@ -659,8 +675,8 @@
                 if (e.key === 'Escape' || e.key === 'BrowserBack' || e.keyCode === 8 || e.keyCode === 27) {
                     closeGameSession();
                 } else if (e.key === 'ArrowUp' || e.key === 'ContextMenu') {
+                    triggerAutoShowExitButton();
                     const btn = document.getElementById('exitBtn');
-                    btn.classList.add('visible');
                     btn.focus();
                 }
             }
