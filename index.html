@@ -190,14 +190,29 @@
             z-index: 10;
         }
 
-        .game-thumbnail {
+        .game-thumbnail-container {
             width: 100%;
             height: 140px;
             background: #1a1a1a;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-thumbnail {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            /* Force hardware acceleration and high-quality image scaling */
-            image-rendering: -webkit-optimize-contrast;
-            transform: translateZ(0);
+            /* Anti-pixelation smoothing filter applied */
+            image-rendering: auto;
+            filter: contrast(1.03) saturate(1.05);
+            transition: transform 0.3s ease;
+        }
+
+        .game-card:hover .game-thumbnail {
+            transform: scale(1.08);
         }
 
         .game-info {
@@ -332,9 +347,9 @@
         });
 
         const featuredGames = [
-            { title: "Cyber Strike Pro", thumbnail: "https://via.placeholder.com/500x250/111/d4af37?text=Cyber+Strike", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
-            { title: "Neon Velocity", thumbnail: "https://via.placeholder.com/500x250/111/d4af37?text=Neon+Velocity", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
-            { title: "Shadow Runner X", thumbnail: "https://via.placeholder.com/500x250/111/d4af37?text=Monster+Truck", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" }
+            { title: "Cyber Strike Pro", thumbnail: "https://images.gamepix.com/games/c/cyber-strike/icon.png", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
+            { title: "Neon Velocity", thumbnail: "https://images.gamepix.com/games/n/neon-velocity/icon.png", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
+            { title: "Shadow Runner X", thumbnail: "https://images.gamepix.com/games/s/shadow-runner/icon.png", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" }
         ];
 
         function renderFeaturedRail() {
@@ -346,7 +361,8 @@
         }
 
         function fetchAndAutoBuildCategories() {
-            const feedUrl = "https://feeds.gamepix.com/v2/json?sid=R7K2K&pagination=96&page=1";
+            // Increased pagination from 96 to 250 to pull a much larger pool of games
+            const feedUrl = "https://feeds.gamepix.com/v2/json?sid=R7K2K&pagination=250&page=1";
 
             fetch(feedUrl)
                 .then(response => response.json())
@@ -369,7 +385,6 @@
             const categoriesMap = {};
             const spilloverBin = [];
 
-            // Group games cleanly into their native category labels
             gamesArray.forEach(game => {
                 let rawCat = game.category || (game.categories && game.categories[0]) || "Arcade";
                 if (typeof rawCat === 'object' && rawCat.name) rawCat = rawCat.name;
@@ -382,7 +397,6 @@
                 categoriesMap[catName].push(game);
             });
 
-            // Keep categories intact, routing tiny singletons into an organized miscellaneous bin
             const finalMap = {};
             for (const [catName, list] of Object.entries(categoriesMap)) {
                 if (list.length >= 2) {
@@ -398,14 +412,13 @@
 
             const container = document.getElementById('dynamicDashboardContainer');
 
-            // Build out all unique categorized rails
             for (const [categoryName, gamesList] of Object.entries(finalMap)) {
                 const section = document.createElement('div');
                 section.className = 'rail-section';
 
                 const titleDiv = document.createElement('div');
                 titleDiv.className = 'rail-title';
-                titleDiv.innerText = categoryName;
+                titleDiv.innerText = `${categoryName} (${gamesList.length})`;
 
                 const railDiv = document.createElement('div');
                 railDiv.className = 'horizontal-rail';
@@ -413,17 +426,12 @@
                 gamesList.forEach(game => {
                     const title = game.title || game.name || "Untitled Game";
                     
-                    // MAXIMUM RESOLUTION IMAGE CLEANER & UPGRADER
                     let rawImg = game.cover || game.image || game.thumbnailUrl || game.thumbnail_url || game.thumbnail || "";
                     
                     if (rawImg) {
-                        // Strip out restrictive low-res dimensions and replace strings with high-definition targets
+                        // Clean up image links to target higher resolution assets
                         rawImg = rawImg.replace(/100x100/g, '800x450')
-                                       .replace(/250x250/g, '800x450')
-                                       .replace(/thumbs/g, 'images')
-                                       .replace(/\/t\//g, '/images/');
-                        
-                        // Ensure protocol is safe
+                                       .replace(/250x250/g, '800x450');
                         if (rawImg.startsWith('//')) {
                             rawImg = 'https:' + rawImg;
                         }
@@ -445,7 +453,9 @@
             const card = document.createElement('div');
             card.className = 'game-card';
             card.innerHTML = `
-                <img src="${thumbnail}" class="game-thumbnail" alt="${title}" loading="lazy" onerror="this.src='https://via.placeholder.com/500x250/111/d4af37?text=D.A.P+Gaming'">
+                <div class="game-thumbnail-container">
+                    <img src="${thumbnail}" class="game-thumbnail" alt="${title}" loading="lazy" onerror="this.src='https://via.placeholder.com/500x250/111/d4af37?text=D.A.P+Gaming'">
+                </div>
                 <div class="game-info">
                     <h3 class="game-title">${title}</h3>
                     <div class="play-btn">PLAY NOW</div>
