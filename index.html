@@ -127,7 +127,7 @@
             letter-spacing: 1px;
         }
 
-        /* Xbox Dashboard Style Horizontal Rails Layout */
+        /* Dashboard Container & Rails */
         .dashboard-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -170,7 +170,7 @@
             border-radius: 4px;
         }
 
-        /* Xbox Style Horizontal Game Card */
+        /* Game Card Styling */
         .game-card {
             flex: 0 0 280px;
             background: #111111;
@@ -205,7 +205,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            image-rendering: auto;
             transition: transform 0.3s ease;
         }
 
@@ -244,7 +243,76 @@
             text-align: center;
         }
 
-        /* Fullscreen Game Player Overlay */
+        /* Custom D.A.P. Disclaimer Modal */
+        #disclaimer-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 99998;
+        }
+
+        .disclaimer-box {
+            background: #111111;
+            border: 2px solid #d4af37;
+            border-radius: 12px;
+            max-width: 480px;
+            width: 90%;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(212, 175, 55, 0.3);
+        }
+
+        .disclaimer-box h2 {
+            color: #d4af37;
+            margin-top: 0;
+            font-size: 1.4rem;
+            letter-spacing: 2px;
+        }
+
+        .disclaimer-box p {
+            color: #cccccc;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        .disclaimer-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .disclaimer-btn-accept {
+            background: linear-gradient(135deg, #d4af37, #aa8c2c);
+            color: #000000;
+            border: none;
+            padding: 10px 24px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
+        .disclaimer-btn-cancel {
+            background: #222;
+            color: #ffffff;
+            border: 1px solid #444;
+            padding: 10px 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .disclaimer-btn-cancel:hover {
+            background: #333;
+        }
+
+        /* True Borderless Fullscreen Game Overlay */
         #game-overlay {
             position: fixed;
             top: 0; left: 0;
@@ -252,39 +320,36 @@
             background: #000000;
             display: none;
             flex-direction: column;
-            z-index: 9999;
+            z-index: 99999;
         }
-        .overlay-header {
-            height: 60px;
-            background: #111;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 25px;
-            border-bottom: 2px solid #d4af37;
-        }
-        .now-playing {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #d4af37;
-            letter-spacing: 1px;
-        }
-        .exit-btn {
-            background: #8b0000;
+
+        /* Floating Minimalist Exit Button */
+        .floating-exit-btn {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            background: rgba(139, 0, 0, 0.85);
             color: white;
-            border: none;
-            padding: 8px 18px;
+            border: 2px solid #d4af37;
+            padding: 8px 16px;
             font-weight: bold;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
             border-radius: 6px;
             cursor: pointer;
-            transition: background 0.2s;
+            z-index: 100000;
+            opacity: 0.2;
+            transition: opacity 0.3s ease, background 0.2s ease;
         }
-        .exit-btn:hover {
-            background: #a50000;
+
+        .floating-exit-btn:hover {
+            opacity: 1;
+            background: #b22222;
         }
+
         #game-iframe {
             width: 100%;
-            height: calc(100vh - 60px);
+            height: 100%;
             border: none;
         }
     </style>
@@ -323,12 +388,21 @@
         </div>
     </div>
 
-    <!-- Active Game Overlay Modal -->
-    <div id="game-overlay">
-        <div class="overlay-header">
-            <span class="now-playing" id="gameTitleDisplay">LOADING...</span>
-            <button class="exit-btn" onclick="closeGameSession()">EXIT GAME</button>
+    <!-- CUSTOM D.A.P. THIRD-PARTY DISCLAIMER MODAL -->
+    <div id="disclaimer-modal">
+        <div class="disclaimer-box">
+            <h2>D.A.P. GAMING NOTICE</h2>
+            <p>You are about to launch an integrated third-party gaming experience hosted securely through D.A.P. Gaming Arcade. By proceeding, you agree to enjoy the session. Where Fun Is Expected & Respect Is Earned!</p>
+            <div class="disclaimer-actions">
+                <button class="disclaimer-btn-cancel" onclick="closeDisclaimer()">CANCEL</button>
+                <button class="disclaimer-btn-accept" onclick="confirmAndLaunchGame()">ACCEPT & PLAY</button>
+            </div>
         </div>
+    </div>
+
+    <!-- Borderless Active Game Overlay Modal -->
+    <div id="game-overlay">
+        <button class="floating-exit-btn" onclick="closeGameSession()">✕ EXIT ARCADE</button>
         <iframe id="game-iframe" src="" allowfullscreen></iframe>
     </div>
 
@@ -350,6 +424,8 @@
             { title: "Shadow Runner X", thumbnail: "https://images.gamepix.com/games/s/shadow-runner/icon.png", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" }
         ];
 
+        let pendingGameUrl = "";
+
         function renderFeaturedRail() {
             const container = document.getElementById('railFeatured');
             container.innerHTML = '';
@@ -358,12 +434,11 @@
             });
         }
 
-        // Multi-page fetcher to safely gather multiple pages and combine hundreds of titles
+        // Multi-page fetcher expanded to pull 4 full pages (~400 titles total)
         async function fetchAllPagesCatalog() {
             let allGames = [];
             try {
-                // Fetch Page 1 and Page 2 sequentially using safe pagination limits
-                for (let page = 1; page <= 2; page++) {
+                for (let page = 1; page <= 4; page++) {
                     const feedUrl = `https://feeds.gamepix.com/v2/json?sid=R7K2K&pagination=96&page=${page}`;
                     const response = await fetch(feedUrl);
                     const data = await response.json();
@@ -429,7 +504,6 @@
                 gamesList.forEach(game => {
                     const title = game.title || game.name || "Untitled Game";
                     
-                    // High-resolution image selection with clean fallback for low-res legacy assets
                     let rawImg = game.cover || game.image || game.thumbnailUrl || game.thumbnail_url || game.thumbnail || "";
                     
                     if (rawImg) {
@@ -456,7 +530,6 @@
             const card = document.createElement('div');
             card.className = 'game-card';
             
-            // Smart image error handler: if a raw thumbnail fails or is too pixelated/broken, replace cleanly with a branded dark gold card graphic
             const fallbackImg = 'https://via.placeholder.com/500x250/111111/d4af37?text=' + encodeURIComponent(title);
             const activeThumb = thumbnail ? thumbnail : fallbackImg;
 
@@ -469,17 +542,40 @@
                     <div class="play-btn">PLAY NOW</div>
                 </div>
             `;
-            card.onclick = () => launchGameSession(title, url);
+            // Trigger custom disclaimer modal instead of direct launch
+            card.onclick = () => promptDisclaimer(url);
             return card;
         }
 
-        function launchGameSession(title, url) {
+        function promptDisclaimer(url) {
+            pendingGameUrl = url;
+            document.getElementById('disclaimer-modal').style.display = 'flex';
+        }
+
+        function closeDisclaimer() {
+            document.getElementById('disclaimer-modal').style.display = 'none';
+            pendingGameUrl = "";
+        }
+
+        function confirmAndLaunchGame() {
+            document.getElementById('disclaimer-modal').style.display = 'none';
+            if (pendingGameUrl) {
+                launchGameSession(pendingGameUrl);
+            }
+        }
+
+        function launchGameSession(url) {
             const overlay = document.getElementById('game-overlay');
             const iframe = document.getElementById('game-iframe');
-            const titleDisplay = document.getElementById('gameTitleDisplay');
 
-            titleDisplay.innerText = `NOW PLAYING: ${title.toUpperCase()}`;
-            iframe.src = url;
+            let cleanUrl = url;
+            if (cleanUrl.includes('?')) {
+                cleanUrl += '&autoplay=1&skip_splash=1';
+            } else {
+                cleanUrl += '?autoplay=1&skip_splash=1';
+            }
+
+            iframe.src = cleanUrl;
             overlay.style.display = 'flex';
         }
 
