@@ -313,6 +313,75 @@
             background: #333;
         }
 
+        /* IN-GAME EXIT / RESUME PROMPT MODAL */
+        #exit-prompt-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100005;
+        }
+
+        .exit-prompt-box {
+            background: #111111;
+            border: 2px solid #d4af37;
+            border-radius: 12px;
+            max-width: 420px;
+            width: 90%;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(212, 175, 55, 0.4);
+        }
+
+        .exit-prompt-box h2 {
+            color: #d4af37;
+            margin-top: 0;
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+        }
+
+        .exit-prompt-box p {
+            color: #cccccc;
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+        }
+
+        .exit-prompt-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn-resume {
+            background: linear-gradient(135deg, #d4af37, #aa8c2c);
+            color: #000000;
+            border: none;
+            padding: 10px 22px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
+        .btn-exit-arcade {
+            background: #222;
+            color: #ff4d4d;
+            border: 1px solid #ff4d4d;
+            padding: 10px 22px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
+        .btn-exit-arcade:hover {
+            background: rgba(255, 77, 77, 0.1);
+        }
+
         /* True Fullscreen Game Overlay */
         #game-overlay {
             position: fixed;
@@ -323,51 +392,11 @@
             z-index: 99999;
         }
 
-        /* Floating Exit Button with Auto-Fade & Smart Dismiss */
-        .floating-exit-btn {
-            position: fixed;
-            top: 15px;
-            right: 20px;
-            background: rgba(139, 0, 0, 0.95);
-            color: white;
-            border: 2px solid #d4af37;
-            padding: 10px 18px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            border-radius: 6px;
-            cursor: pointer;
-            z-index: 100005;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease, background 0.2s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.9);
-        }
-
-        .floating-exit-btn.visible, .floating-exit-btn:focus {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .floating-exit-btn:hover, .floating-exit-btn:focus {
-            background: #b22222;
-            outline: 3px solid #ffffff;
-        }
-
         #game-iframe {
             width: 100%;
             height: 100%;
             border: none;
             display: block;
-        }
-
-        /* Touch / Remote Corner Trigger Zone (Slimmed down to prevent overlap) */
-        #touch-helper-zone {
-            position: fixed;
-            top: 0; right: 0;
-            width: 90px; height: 90px;
-            z-index: 100004;
-            display: none;
         }
     </style>
 </head>
@@ -417,12 +446,22 @@
         </div>
     </div>
 
-    <!-- Independent Fullscreen Game Overlay & Exit Controls -->
+    <!-- IN-GAME EXIT / RESUME CHOICE MODAL -->
+    <div id="exit-prompt-modal">
+        <div class="exit-prompt-box">
+            <h2>PAUSED / EXIT ARCADE</h2>
+            <p>Would you like to return to the D.A.P Gaming Arcade menu or resume your game session?</p>
+            <div class="exit-prompt-actions">
+                <button class="btn-resume" onclick="resumeGameSession()">RESUME</button>
+                <button class="btn-exit-arcade" onclick="confirmExitArcade()">EXIT TO MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Independent Fullscreen Game Overlay -->
     <div id="game-overlay">
         <iframe id="game-iframe" src="" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe>
     </div>
-    <div id="touch-helper-zone" ontouchstart="toggleExitButtonMobile(event)"></div>
-    <button id="exitBtn" class="floating-exit-btn" tabindex="0" onclick="closeGameSession()">✕ EXIT ARCADE</button>
 
     <script>
         window.addEventListener('load', () => {
@@ -443,7 +482,6 @@
         ];
 
         let pendingGameUrl = "";
-        let exitButtonTimer = null;
 
         function renderFeaturedRail() {
             const container = document.getElementById('railFeatured');
@@ -591,7 +629,6 @@
         function launchGameSession(url) {
             const overlay = document.getElementById('game-overlay');
             const iframe = document.getElementById('game-iframe');
-            const touchZone = document.getElementById('touch-helper-zone');
 
             let cleanUrl = url;
             if (cleanUrl.includes('?')) {
@@ -602,82 +639,51 @@
 
             iframe.src = cleanUrl;
             overlay.style.display = 'block';
-            touchZone.style.display = 'block';
+
+            // Push a fake state into browser history so mobile "swipe back" or browser "back" triggers our prompt instead of leaving the site
+            history.pushState({ inGame: true }, '', '#play');
 
             setTimeout(() => {
                 iframe.focus();
             }, 500);
         }
 
-        function closeGameSession() {
+        function resumeGameSession() {
+            document.getElementById('exit-prompt-modal').style.display = 'none';
+            // Re-push history state so the back gesture works again next time
+            history.pushState({ inGame: true }, '', '#play');
+            
+            // Refocus game iframe
+            setTimeout(() => {
+                document.getElementById('game-iframe').focus();
+            }, 200);
+        }
+
+        function confirmExitArcade() {
+            document.getElementById('exit-prompt-modal').style.display = 'none';
             const overlay = document.getElementById('game-overlay');
             const iframe = document.getElementById('game-iframe');
-            const btn = document.getElementById('exitBtn');
-            const touchZone = document.getElementById('touch-helper-zone');
 
             iframe.src = '';
             overlay.style.display = 'none';
-            touchZone.style.display = 'none';
-            btn.classList.remove('visible');
-            if (exitButtonTimer) clearTimeout(exitButtonTimer);
         }
 
-        // Helper to show exit button with an auto-hide timer so it never blocks game UI permanently
-        function triggerAutoShowExitButton() {
-            const btn = document.getElementById('exitBtn');
-            btn.classList.add('visible');
-            
-            if (exitButtonTimer) clearTimeout(exitButtonTimer);
-            exitButtonTimer = setTimeout(() => {
-                btn.classList.remove('visible');
-            }, 3000); // Hides automatically after 3 seconds of inactivity
-        }
-
-        // Desktop Mouse Listener
-        document.addEventListener('mousemove', (e) => {
+        // Intercept Mobile Swipe-Back, Browser Back Buttons, and TV/Gamepad Back Inputs
+        window.addEventListener('popstate', (e) => {
             const overlay = document.getElementById('game-overlay');
             if (overlay.style.display === 'block') {
-                const btn = document.getElementById('exitBtn');
-                if (e.clientY < 80 || e.clientX > window.innerWidth - 120) {
-                    btn.classList.add('visible');
-                    if (exitButtonTimer) clearTimeout(exitButtonTimer);
-                }
+                // Show our clean choice menu instead of instantly exiting
+                document.getElementById('exit-prompt-modal').style.display = 'flex';
             }
         });
 
-        // Mobile Touch Toggle with Auto-Timer
-        function toggleExitButtonMobile(e) {
-            e.stopPropagation();
-            triggerAutoShowExitButton();
-        }
-
-        // Global Touch Listener: Tapping anywhere else on screen instantly hides the exit button out of the way
-        document.addEventListener('touchstart', (e) => {
-            const overlay = document.getElementById('game-overlay');
-            if (overlay.style.display === 'block') {
-                if (e.touches.length === 2) {
-                    triggerAutoShowExitButton();
-                } else {
-                    // Tap outside corner zone dismisses it immediately so it doesn't block gameplay
-                    const btn = document.getElementById('exitBtn');
-                    if (e.touches[0].clientX < window.innerWidth - 120 || e.touches[0].clientY > 90) {
-                        btn.classList.remove('visible');
-                        if (exitButtonTimer) clearTimeout(exitButtonTimer);
-                    }
-                }
-            }
-        }, { passive: true });
-
-        // TV Remote & Game Controller Key Listener
+        // TV Remote & Game Controller Key Listener (Escape / BrowserBack / Controller B Button mapping)
         document.addEventListener('keydown', (e) => {
             const overlay = document.getElementById('game-overlay');
             if (overlay.style.display === 'block') {
                 if (e.key === 'Escape' || e.key === 'BrowserBack' || e.keyCode === 8 || e.keyCode === 27) {
-                    closeGameSession();
-                } else if (e.key === 'ArrowUp' || e.key === 'ContextMenu') {
-                    triggerAutoShowExitButton();
-                    const btn = document.getElementById('exitBtn');
-                    btn.focus();
+                    e.preventDefault();
+                    document.getElementById('exit-prompt-modal').style.display = 'flex';
                 }
             }
         });
