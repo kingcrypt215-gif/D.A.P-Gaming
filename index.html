@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>D.A.P Gaming Arcade</title>
     <style>
         * { box-sizing: border-box; }
@@ -243,7 +243,7 @@
             text-align: center;
         }
 
-        /* Custom D.A.P. Disclaimer Modal */
+        /* CUSTOM D.A.P GAMING DISCLAIMER MODAL */
         #disclaimer-modal {
             position: fixed;
             top: 0; left: 0;
@@ -312,45 +312,21 @@
             background: #333;
         }
 
-        /* True Borderless Fullscreen Game Overlay */
+        /* True Edge-to-Edge Fullscreen Game Overlay */
         #game-overlay {
             position: fixed;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
             background: #000000;
             display: none;
-            flex-direction: column;
             z-index: 99999;
-        }
-
-        /* Floating Minimalist Exit Button */
-        .floating-exit-btn {
-            position: fixed;
-            top: 15px;
-            right: 20px;
-            background: rgba(139, 0, 0, 0.85);
-            color: white;
-            border: 2px solid #d4af37;
-            padding: 8px 16px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            letter-spacing: 1px;
-            border-radius: 6px;
-            cursor: pointer;
-            z-index: 100000;
-            opacity: 0.2;
-            transition: opacity 0.3s ease, background 0.2s ease;
-        }
-
-        .floating-exit-btn:hover {
-            opacity: 1;
-            background: #b22222;
         }
 
         #game-iframe {
             width: 100%;
             height: 100%;
             border: none;
+            display: block;
         }
     </style>
 </head>
@@ -388,11 +364,11 @@
         </div>
     </div>
 
-    <!-- CUSTOM D.A.P. THIRD-PARTY DISCLAIMER MODAL -->
+    <!-- CUSTOM D.A.P GAMING THIRD-PARTY DISCLAIMER MODAL -->
     <div id="disclaimer-modal">
         <div class="disclaimer-box">
-            <h2>D.A.P. GAMING NOTICE</h2>
-            <p>You are about to launch an integrated third-party gaming experience hosted securely through D.A.P. Gaming Arcade. By proceeding, you agree to enjoy the session. Where Fun Is Expected & Respect Is Earned!</p>
+            <h2>D.A.P GAMING NOTICE</h2>
+            <p>You are about to launch an integrated third-party gaming experience hosted securely through D.A.P Gaming Arcade. By proceeding, you agree to enjoy the session. Where Fun Is Expected & Respect Is Earned!</p>
             <div class="disclaimer-actions">
                 <button class="disclaimer-btn-cancel" onclick="closeDisclaimer()">CANCEL</button>
                 <button class="disclaimer-btn-accept" onclick="confirmAndLaunchGame()">ACCEPT & PLAY</button>
@@ -400,9 +376,8 @@
         </div>
     </div>
 
-    <!-- Borderless Active Game Overlay Modal -->
+    <!-- Edge-to-Edge Active Game Overlay Modal -->
     <div id="game-overlay">
-        <button class="floating-exit-btn" onclick="closeGameSession()">✕ EXIT ARCADE</button>
         <iframe id="game-iframe" src="" allowfullscreen></iframe>
     </div>
 
@@ -434,11 +409,11 @@
             });
         }
 
-        // Multi-page fetcher expanded to pull 4 full pages (~400 titles total)
+        // Multi-page fetcher expanded to pull 5 full pages (pushing past 400+ titles)
         async function fetchAllPagesCatalog() {
             let allGames = [];
             try {
-                for (let page = 1; page <= 4; page++) {
+                for (let page = 1; page <= 5; page++) {
                     const feedUrl = `https://feeds.gamepix.com/v2/json?sid=R7K2K&pagination=96&page=${page}`;
                     const response = await fetch(feedUrl);
                     const data = await response.json();
@@ -542,7 +517,7 @@
                     <div class="play-btn">PLAY NOW</div>
                 </div>
             `;
-            // Trigger custom disclaimer modal instead of direct launch
+            // Trigger custom disclaimer modal before launching the game session
             card.onclick = () => promptDisclaimer(url);
             return card;
         }
@@ -570,21 +545,13 @@
 
             let cleanUrl = url;
             if (cleanUrl.includes('?')) {
-                cleanUrl += '&autoplay=1&skip_splash=1';
+                cleanUrl += '&autoplay=1';
             } else {
-                cleanUrl += '?autoplay=1&skip_splash=1';
+                cleanUrl += '?autoplay=1';
             }
 
             iframe.src = cleanUrl;
-            overlay.style.display = 'flex';
-        }
-
-        function closeGameSession() {
-            const overlay = document.getElementById('game-overlay');
-            const iframe = document.getElementById('game-iframe');
-
-            iframe.src = ''; 
-            overlay.style.display = 'none';
+            overlay.style.display = 'block';
         }
     </script>
 </body>
