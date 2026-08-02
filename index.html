@@ -36,7 +36,6 @@
             margin-bottom: 20px;
         }
 
-        /* Rotating glowing loading ring using D.A.P. gold */
         .splash-spinner-ring {
             position: absolute;
             top: 0; left: 0;
@@ -91,7 +90,6 @@
             width: 0%;
             height: 100%;
             background: #d4af37;
-            /* Extended duration to match the longer linger time */
             animation: loadProgress 3.8s forwards ease-in-out;
         }
 
@@ -298,24 +296,14 @@
             <p>Where Fun Is Expected & Respect Is Earned!</p>
         </div>
 
-        <div class="dashboard-container">
-            <!-- Rail 1: Featured Games -->
+        <div class="dashboard-container" id="dynamicDashboardContainer">
+            <!-- Rail 1: Hand-Picked Featured Section at the Top -->
             <div class="rail-section">
-                <div class="rail-title">Featured Titles</div>
+                <div class="rail-title">Featured Titles (Curated)</div>
                 <div class="horizontal-rail" id="railFeatured"></div>
             </div>
-
-            <!-- Rail 2: Action & Arcade -->
-            <div class="rail-section">
-                <div class="rail-title">Action & Arcade</div>
-                <div class="horizontal-rail" id="railAction"></div>
-            </div>
-
-            <!-- Rail 3: Strategy & Puzzles -->
-            <div class="rail-section">
-                <div class="rail-title">Strategy & Classics</div>
-                <div class="horizontal-rail" id="railStrategy"></div>
-            </div>
+            
+            <!-- Dynamic feed categories automatically inject their rails right below here -->
         </div>
     </div>
 
@@ -329,58 +317,106 @@
     </div>
 
     <script>
-        // Extended splash screen timer (lingers for 4 seconds before fading out)
+        // Splash screen 4-second linger timer
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
                 splash.style.opacity = '0';
                 splash.style.visibility = 'hidden';
             }, 4000);
-            renderDashboard();
+            
+            renderFeaturedRail();
+            fetchAndAutoBuildCategories();
         });
 
-        // Sample game catalog split into categories for the Xbox horizontal dashboard layout
+        // 1. MANUALLY CURATED FEATURED GAMES
         const featuredGames = [
-            { title: "Cyber Strike Pro", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Cyber+Strike", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
-            { title: "Neon Velocity", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Neon+Velocity", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
-            { title: "Shadow Runner X", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Shadow+Runner", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" }
+            { title: "Cyber Strike Pro", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Cyber+Strike", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
+            { title: "Neon Velocity", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Neon+Velocity", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
+            { title: "Shadow Runner X", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Shadow+Runner", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" }
         ];
 
-        const actionGames = [
-            { title: "Pixel Battlegrounds", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Pixel+Battle", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
-            { title: "Speedway Nitro", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Speedway+Nitro", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
-            { title: "Galaxy Defender", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Galaxy+Defender", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" }
-        ];
-
-        const strategyGames = [
-            { title: "Tower Defense Elite", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Tower+Defense", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
-            { title: "Crypto Puzzle Master", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Puzzle+Master", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
-            { title: "Gold Rush Tactics", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Gold+Rush", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" }
-        ];
-
-        function populateRail(containerId, gamesArray) {
-            const container = document.getElementById(containerId);
+        function renderFeaturedRail() {
+            const container = document.getElementById('railFeatured');
             container.innerHTML = '';
-
-            gamesArray.forEach((game) => {
-                const card = document.createElement('div');
-                card.className = 'game-card';
-                card.innerHTML = `
-                    <img src="${game.thumbnail}" class="game-thumbnail" alt="${game.title}">
-                    <div class="game-info">
-                        <h3 class="game-title">${game.title}</h3>
-                        <div class="play-btn">PLAY NOW</div>
-                    </div>
-                `;
-                card.onclick = () => launchGameSession(game.title, game.url);
-                container.appendChild(card);
+            featuredGames.forEach((game) => {
+                container.appendChild(createGameCard(game.title, game.thumbnail, game.url));
             });
         }
 
-        function renderDashboard() {
-            populateRail('railFeatured', featuredGames);
-            populateRail('railAction', actionGames);
-            populateRail('railStrategy', strategyGames);
+        // 2. LIVE GAMEPIX JSON FEED PARSER & DYNAMIC RAIL BUILDER
+        function fetchAndAutoBuildCategories() {
+            const feedUrl = "https://feeds.gamepix.com/v2/json?sid=R7K2K&pagination=96&page=1";
+
+            fetch(feedUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // GamePix typically wraps items inside a data or items array, or returns the array directly
+                    const gamesList = Array.isArray(data) ? data : (data.data || data.items || []);
+                    organizeAndBuildRails(gamesList);
+                })
+                .catch(error => {
+                    console.error("Error fetching live GamePix feed:", error);
+                });
+        }
+
+        function organizeAndBuildRails(gamesArray) {
+            const categoriesMap = {};
+
+            gamesArray.forEach(game => {
+                // Adjust property names based on GamePix JSON schema (falling back gracefully)
+                let catName = game.category || (game.categories && game.categories[0]) || "Arcade & Classics";
+                if (typeof catName === 'object' && catName.name) catName = catName.name;
+                catName = String(catName).trim();
+                catName = catName.charAt(0).toUpperCase() + catName.slice(1);
+
+                if (!categoriesMap[catName]) {
+                    categoriesMap[catName] = [];
+                }
+                categoriesMap[catName].push(game);
+            });
+
+            const container = document.getElementById('dynamicDashboardContainer');
+
+            // Build a visual horizontal rail for each unique category found in your 96-game batch
+            for (const [categoryName, gamesList] of Object.entries(categoriesMap)) {
+                const section = document.createElement('div');
+                section.className = 'rail-section';
+
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'rail-title';
+                titleDiv.innerText = categoryName;
+
+                const railDiv = document.createElement('div');
+                railDiv.className = 'horizontal-rail';
+
+                gamesList.forEach(game => {
+                    const title = game.title || game.name || "Untitled Game";
+                    const thumbnail = game.thumbnail_url || game.thumbnail || game.image || "";
+                    const url = game.url || game.link || "#";
+                    
+                    railDiv.appendChild(createGameCard(title, thumbnail, url));
+                });
+
+                section.appendChild(titleDiv);
+                section.appendChild(railDiv);
+                container.appendChild(section);
+            }
+        }
+
+        // Helper function to build individual game cards
+        function createGameCard(title, thumbnail, url) {
+            const card = document.createElement('div');
+            card.className = 'game-card';
+            card.innerHTML = `
+                <img src="${thumbnail}" class="game-thumbnail" alt="${title}" onerror="this.src='https://via.placeholder.com/300x150/111/d4af37?text=D.A.P+Gaming'">
+                <div class="game-info">
+                    <h3 class="game-title">${title}</h3>
+                    <div class="play-btn">PLAY NOW</div>
+                </div>
+            `;
+            card.onclick = () => launchGameSession(title, url);
+            return card;
         }
 
         function launchGameSession(title, url) {
