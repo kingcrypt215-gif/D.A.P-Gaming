@@ -195,8 +195,9 @@
             height: 140px;
             background: #1a1a1a;
             object-fit: cover;
+            /* Force hardware acceleration and high-quality image scaling */
             image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
+            transform: translateZ(0);
         }
 
         .game-info {
@@ -331,9 +332,9 @@
         });
 
         const featuredGames = [
-            { title: "Cyber Strike Pro", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Cyber+Strike", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
-            { title: "Neon Velocity", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Neon+Velocity", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
-            { title: "Shadow Runner X", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Shadow+Runner", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" }
+            { title: "Cyber Strike Pro", thumbnail: "https://via.placeholder.com/500x250/111/d4af37?text=Cyber+Strike", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
+            { title: "Neon Velocity", thumbnail: "https://via.placeholder.com/500x250/111/d4af37?text=Neon+Velocity", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
+            { title: "Shadow Runner X", thumbnail: "https://via.placeholder.com/500x250/111/d4af37?text=Monster+Truck", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" }
         ];
 
         function renderFeaturedRail() {
@@ -358,30 +359,17 @@
                 });
         }
 
-        // Helper to balance category names and ensure categories have enough titles
         function normalizeCategoryName(raw) {
             if (!raw) return "Arcade & Classics";
             let cat = String(raw).trim();
-            cat = cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
-            
-            // Map common specific small sub-genres to richer main categories if they are too isolated
-            let lower = cat.toLowerCase();
-            if (lower.includes('action') || lower.includes('shooter') || lower.includes('fight')) return "Action";
-            if (lower.includes('puzzle') || lower.includes('brain') || lower.includes('logic')) return "Puzzles";
-            if (lower.includes('sport') || lower.includes('football') || lower.includes('soccer')) return "Sports";
-            if (lower.includes('race') || lower.includes('driving') || lower.includes('car')) return "Racing";
-            if (lower.includes('arcade') || lower.includes('retro')) return "Arcade";
-            if (lower.includes('casual') || lower.includes('kids')) return "Casual & Fun";
-            
-            return cat;
+            return cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
         }
 
         function organizeAndBuildRails(gamesArray) {
             const categoriesMap = {};
             const spilloverBin = [];
 
-            // First pass: Group by precise normalized category
-            gamesArray.categoriesMap = {};
+            // Group games cleanly into their native category labels
             gamesArray.forEach(game => {
                 let rawCat = game.category || (game.categories && game.categories[0]) || "Arcade";
                 if (typeof rawCat === 'object' && rawCat.name) rawCat = rawCat.name;
@@ -394,8 +382,7 @@
                 categoriesMap[catName].push(game);
             });
 
-            // Ensure plenty of active categories by keeping any with 2+ games, 
-            // and routing singletons into an "Extended Arcade" or "More Hits" category so rails stay rich
+            // Keep categories intact, routing tiny singletons into an organized miscellaneous bin
             const finalMap = {};
             for (const [catName, list] of Object.entries(categoriesMap)) {
                 if (list.length >= 2) {
@@ -406,12 +393,12 @@
             }
 
             if (spilloverBin.length > 0) {
-                finalMap["Trending & More"] = spilloverBin;
+                finalMap["Arcade Highlights"] = spilloverBin;
             }
 
             const container = document.getElementById('dynamicDashboardContainer');
 
-            // Build rails for each filled category
+            // Build out all unique categorized rails
             for (const [categoryName, gamesList] of Object.entries(finalMap)) {
                 const section = document.createElement('div');
                 section.className = 'rail-section';
@@ -426,19 +413,26 @@
                 gamesList.forEach(game => {
                     const title = game.title || game.name || "Untitled Game";
                     
-                    // High-res image priority resolution mapping
-                    let thumbnail = game.thumbnailUrl || game.thumbnail_url || game.thumbnail || game.image || "";
+                    // MAXIMUM RESOLUTION IMAGE CLEANER & UPGRADER
+                    let rawImg = game.cover || game.image || game.thumbnailUrl || game.thumbnail_url || game.thumbnail || "";
                     
-                    // If GamePix returns a low-res size string like '100x100', switch parameters to pull larger crisp asset versions if applicable
-                    if (thumbnail.includes('100x100')) {
-                        thumbnail = thumbnail.replace('100x100', '500x500');
-                    } else if (thumbnail.includes('250x250')) {
-                        thumbnail = thumbnail.replace('250x250', '500x500');
+                    if (rawImg) {
+                        // Strip out restrictive low-res dimensions and replace strings with high-definition targets
+                        rawImg = rawImg.replace(/100x100/g, '800x450')
+                                       .replace(/250x250/g, '800x450')
+                                       .replace(/thumbs/g, 'images')
+                                       .replace(/\/t\//g, '/images/');
+                        
+                        // Ensure protocol is safe
+                        if (rawImg.startsWith('//')) {
+                            rawImg = 'https:' + rawImg;
+                        }
+                    } else {
+                        rawImg = 'https://via.placeholder.com/500x250/111/d4af37?text=D.A.P+Gaming';
                     }
 
                     const url = game.url || game.link || "#";
-                    
-                    railDiv.appendChild(createGameCard(title, thumbnail, url));
+                    railDiv.appendChild(createGameCard(title, rawImg, url));
                 });
 
                 section.appendChild(titleDiv);
@@ -451,7 +445,7 @@
             const card = document.createElement('div');
             card.className = 'game-card';
             card.innerHTML = `
-                <img src="${thumbnail}" class="game-thumbnail" alt="${title}" onerror="this.src='https://via.placeholder.com/300x150/111/d4af37?text=D.A.P+Gaming'">
+                <img src="${thumbnail}" class="game-thumbnail" alt="${title}" loading="lazy" onerror="this.src='https://via.placeholder.com/500x250/111/d4af37?text=D.A.P+Gaming'">
                 <div class="game-info">
                     <h3 class="game-title">${title}</h3>
                     <div class="play-btn">PLAY NOW</div>
