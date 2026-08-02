@@ -312,7 +312,7 @@
             background: #333;
         }
 
-        /* True Fullscreen Game Overlay with Smart Auto-Hide Exit Button */
+        /* True Fullscreen Game Overlay */
         #game-overlay {
             position: fixed;
             top: 0; left: 0;
@@ -322,6 +322,7 @@
             z-index: 99999;
         }
 
+        /* Completely hidden by default, pops in only when hovering near top-right */
         .floating-exit-btn {
             position: fixed;
             top: 15px;
@@ -342,9 +343,8 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.8);
         }
 
-        /* Reveal the exit button when hovering near the top-right of the screen */
-        #game-overlay:hover .floating-exit-btn {
-            opacity: 0.85;
+        .floating-exit-btn.visible {
+            opacity: 0.9;
             visibility: visible;
         }
 
@@ -407,11 +407,11 @@
         </div>
     </div>
 
-    <!-- True Fullscreen Game Overlay with Smart Auto-Hide Exit Button -->
+    <!-- Independent Fullscreen Game Overlay & Edge-Triggered Exit Button -->
     <div id="game-overlay" ontouchstart="revealExitButtonMobile()">
-        <button id="exitBtn" class="floating-exit-btn" onclick="closeGameSession()">✕ EXIT ARCADE</button>
         <iframe id="game-iframe" src="" allowfullscreen></iframe>
     </div>
+    <button id="exitBtn" class="floating-exit-btn" onclick="closeGameSession()">✕ EXIT ARCADE</button>
 
     <script>
         window.addEventListener('load', () => {
@@ -588,20 +588,34 @@
         function closeGameSession() {
             const overlay = document.getElementById('game-overlay');
             const iframe = document.getElementById('game-iframe');
+            const btn = document.getElementById('exitBtn');
 
             iframe.src = '';
             overlay.style.display = 'none';
+            btn.classList.remove('visible');
         }
 
-        // Mobile tap helper to briefly reveal exit button on touch screens
+        // Smart Mouse Listener: Only show exit button when cursor moves near top-right corner during gameplay
+        document.addEventListener('mousemove', (e) => {
+            const overlay = document.getElementById('game-overlay');
+            if (overlay.style.display === 'block') {
+                const btn = document.getElementById('exitBtn');
+                // Triggers when mouse is within 120px of the top and 200px of the right edge
+                if (e.clientY < 120 && e.clientX > window.innerWidth - 200) {
+                    btn.classList.add('visible');
+                } else {
+                    btn.classList.remove('visible');
+                }
+            }
+        });
+
+        // Mobile touch helper to briefly reveal exit button on tap
         function revealExitButtonMobile() {
             const btn = document.getElementById('exitBtn');
-            btn.style.opacity = '1';
-            btn.style.visibility = 'visible';
+            btn.classList.add('visible');
             setTimeout(() => {
-                btn.style.opacity = '0';
-                btn.style.visibility = 'hidden';
-            }, 3500);
+                btn.classList.remove('visible');
+            }, 3000);
         }
     </script>
 </body>
