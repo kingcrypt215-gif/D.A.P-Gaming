@@ -1,4 +1,4 @@
-            <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -195,6 +195,8 @@
             height: 140px;
             background: #1a1a1a;
             object-fit: cover;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
         }
 
         .game-info {
@@ -303,7 +305,7 @@
                 <div class="horizontal-rail" id="railFeatured"></div>
             </div>
             
-            <!-- Major categorized rails will inject automatically below -->
+            <!-- Dynamic Category Rails Inject Here -->
         </div>
     </div>
 
@@ -317,7 +319,6 @@
     </div>
 
     <script>
-        // Splash screen 4-second linger timer
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
@@ -329,7 +330,6 @@
             fetchAndAutoBuildCategories();
         });
 
-        // 1. MANUALLY CURATED FEATURED GAMES
         const featuredGames = [
             { title: "Cyber Strike Pro", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Cyber+Strike", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
             { title: "Neon Velocity", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Neon+Velocity", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=R7K2K" },
@@ -344,7 +344,6 @@
             });
         }
 
-        // 2. LIVE GAMEPIX JSON FEED PARSER & SMARTER CATEGORY BUILDER
         function fetchAndAutoBuildCategories() {
             const feedUrl = "https://feeds.gamepix.com/v2/json?sid=R7K2K&pagination=96&page=1";
 
@@ -359,43 +358,61 @@
                 });
         }
 
-        // Maps sub-categories into clean, major buckets so rails are full and robust
-        function getMajorCategory(rawCategory) {
-            if (!rawCategory) return "Arcade & Classics";
-            let cat = String(rawCategory).toLowerCase();
-
-            if (cat.includes('action') || cat.includes('shooter') || cat.includes('fight') || cat.includes('adventure')) {
-                return "Action & Adventure";
-            } else if (cat.includes('puzzle') || cat.includes('brain') || cat.includes('logic') || cat.includes('strategy')) {
-                return "Strategy & Puzzles";
-            } else if (cat.includes('sport') || cat.includes('race') || cat.includes('driving') || cat.includes('football') || cat.includes('soccer')) {
-                return "Sports & Racing";
-            } else if (cat.includes('arcade') || cat.includes('retro') || cat.includes('casual')) {
-                return "Arcade & Classics";
-            } else {
-                return "Trending Hits";
-            }
+        // Helper to balance category names and ensure categories have enough titles
+        function normalizeCategoryName(raw) {
+            if (!raw) return "Arcade & Classics";
+            let cat = String(raw).trim();
+            cat = cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+            
+            // Map common specific small sub-genres to richer main categories if they are too isolated
+            let lower = cat.toLowerCase();
+            if (lower.includes('action') || lower.includes('shooter') || lower.includes('fight')) return "Action";
+            if (lower.includes('puzzle') || lower.includes('brain') || lower.includes('logic')) return "Puzzles";
+            if (lower.includes('sport') || lower.includes('football') || lower.includes('soccer')) return "Sports";
+            if (lower.includes('race') || lower.includes('driving') || lower.includes('car')) return "Racing";
+            if (lower.includes('arcade') || lower.includes('retro')) return "Arcade";
+            if (lower.includes('casual') || lower.includes('kids')) return "Casual & Fun";
+            
+            return cat;
         }
 
         function organizeAndBuildRails(gamesArray) {
             const categoriesMap = {};
+            const spilloverBin = [];
 
+            // First pass: Group by precise normalized category
+            gamesArray.categoriesMap = {};
             gamesArray.forEach(game => {
-                let rawCat = game.category || (game.categories && game.categories[0]) || "";
+                let rawCat = game.category || (game.categories && game.categories[0]) || "Arcade";
                 if (typeof rawCat === 'object' && rawCat.name) rawCat = rawCat.name;
                 
-                const majorCat = getMajorCategory(rawCat);
+                const catName = normalizeCategoryName(rawCat);
 
-                if (!categoriesMap[majorCat]) {
-                    categoriesMap[majorCat] = [];
+                if (!categoriesMap[catName]) {
+                    categoriesMap[catName] = [];
                 }
-                categoriesMap[majorCat].push(game);
+                categoriesMap[catName].push(game);
             });
+
+            // Ensure plenty of active categories by keeping any with 2+ games, 
+            // and routing singletons into an "Extended Arcade" or "More Hits" category so rails stay rich
+            const finalMap = {};
+            for (const [catName, list] of Object.entries(categoriesMap)) {
+                if (list.length >= 2) {
+                    finalMap[catName] = list;
+                } else {
+                    spilloverBin.push(...list);
+                }
+            }
+
+            if (spilloverBin.length > 0) {
+                finalMap["Trending & More"] = spilloverBin;
+            }
 
             const container = document.getElementById('dynamicDashboardContainer');
 
-            // Build a visual horizontal rail for each major category bucket
-            for (const [categoryName, gamesList] of Object.entries(categoriesMap)) {
+            // Build rails for each filled category
+            for (const [categoryName, gamesList] of Object.entries(finalMap)) {
                 const section = document.createElement('div');
                 section.className = 'rail-section';
 
@@ -409,8 +426,16 @@
                 gamesList.forEach(game => {
                     const title = game.title || game.name || "Untitled Game";
                     
-                    // Pulls high-res artwork or high-definition thumbnail property to ensure clarity
-                    const thumbnail = game.high_thumbnail || game.thumbnail_url || game.thumbnail || game.image || "";
+                    // High-res image priority resolution mapping
+                    let thumbnail = game.thumbnailUrl || game.thumbnail_url || game.thumbnail || game.image || "";
+                    
+                    // If GamePix returns a low-res size string like '100x100', switch parameters to pull larger crisp asset versions if applicable
+                    if (thumbnail.includes('100x100')) {
+                        thumbnail = thumbnail.replace('100x100', '500x500');
+                    } else if (thumbnail.includes('250x250')) {
+                        thumbnail = thumbnail.replace('250x250', '500x500');
+                    }
+
                     const url = game.url || game.link || "#";
                     
                     railDiv.appendChild(createGameCard(title, thumbnail, url));
@@ -422,7 +447,6 @@
             }
         }
 
-        // Helper function to build individual game cards
         function createGameCard(title, thumbnail, url) {
             const card = document.createElement('div');
             card.className = 'game-card';
