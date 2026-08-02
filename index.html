@@ -15,91 +15,131 @@
         /* Arcade Header & Logo Styling */
         .arcade-header {
             text-align: center;
-            padding: 40px 20px 20px 20px;
+            padding: 30px 20px 20px 20px;
             background: linear-gradient(to bottom, #111, #050505);
             border-bottom: 2px solid #d4af37;
         }
         
         .brand-logo {
-            max-width: 220px;
+            max-width: 180px;
             height: auto;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             filter: drop-shadow(0 4px 12px rgba(212, 175, 55, 0.4));
         }
 
         .arcade-header h1 {
             margin: 0;
-            font-size: 2.2rem;
+            font-size: 2rem;
             letter-spacing: 3px;
             color: #d4af37;
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
         .arcade-header p {
             color: #aaaaaa;
-            margin-top: 8px;
-            font-size: 1rem;
+            margin-top: 6px;
+            font-size: 0.9rem;
             letter-spacing: 1px;
         }
 
-        /* Game Grid Layout */
-        .game-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 25px;
-            max-width: 1200px;
+        /* Xbox Dashboard Style Horizontal Rails Layout */
+        .dashboard-container {
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: 30px 20px;
         }
 
-        /* Individual Game Card */
+        .rail-section {
+            margin-bottom: 35px;
+        }
+
+        .rail-title {
+            font-size: 1.2rem;
+            color: #d4af37;
+            letter-spacing: 1.5px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            border-left: 4px solid #d4af37;
+            padding-left: 10px;
+        }
+
+        .horizontal-rail {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: #d4af37 #111;
+        }
+
+        .horizontal-rail::-webkit-scrollbar {
+            height: 8px;
+        }
+        .horizontal-rail::-webkit-scrollbar-track {
+            background: #111;
+            border-radius: 4px;
+        }
+        .horizontal-rail::-webkit-scrollbar-thumb {
+            background: #d4af37;
+            border-radius: 4px;
+        }
+
+        /* Xbox Style Horizontal Game Card */
         .game-card {
+            flex: 0 0 280px;
             background: #111111;
             border: 2px solid #222222;
-            border-radius: 12px;
+            border-radius: 10px;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
             display: flex;
             flex-direction: column;
         }
+
         .game-card:hover {
             border-color: #d4af37;
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.15);
+            transform: scale(1.04);
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.25);
+            z-index: 10;
         }
+
         .game-thumbnail {
             width: 100%;
-            height: 150px;
+            height: 140px;
             background: #1a1a1a;
             object-fit: cover;
         }
+
         .game-info {
-            padding: 18px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
-            flex-grow: 1;
             justify-content: space-between;
+            flex-grow: 1;
         }
+
         .game-title {
-            font-size: 1.05rem;
+            font-size: 0.95rem;
             font-weight: bold;
-            margin: 0 0 15px 0;
+            margin: 0 0 12px 0;
             color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+
         .play-btn {
             background: linear-gradient(135deg, #d4af37, #aa8c2c);
             color: #000000;
             border: none;
-            padding: 10px;
+            padding: 8px;
             font-weight: bold;
+            font-size: 0.85rem;
             letter-spacing: 1px;
-            border-radius: 6px;
+            border-radius: 4px;
             cursor: pointer;
             text-align: center;
-            transition: opacity 0.2s;
-        }
-        .game-card:hover .play-btn {
-            opacity: 0.9;
         }
 
         /* Fullscreen Game Player Overlay */
@@ -149,19 +189,33 @@
 </head>
 <body>
 
-    <!-- D.A.P Gaming Arcade Hub Interface -->
+    <!-- D.A.P Gaming Dashboard Hub Interface -->
     <div id="arcade-menu">
         <div class="arcade-header">
-            
-            <!-- Points to your custom logo file name with space encoding if needed -->
-            <img src="D.A.P%20Gaming%20Logo.jpg" alt="D.A.P Gaming Logo" class="brand-logo">
-            
+            <!-- Points to your exact logo filename -->
+            <img src="D.A.P%20Gaming%20Logo.jpg" alt="D.A.P Gaming Logo" class="brand-logo" onerror="this.style.display='none'">
             <h1>D.A.P GAMING ARCADE</h1>
-            <p>SELECT A TITLE TO INITIATE PLAY</p>
+            <p>CONSOLE DASHBOARD LAYOUT</p>
         </div>
 
-        <div class="game-grid" id="gameGridContainer">
-            <!-- Game cards injected dynamically -->
+        <div class="dashboard-container">
+            <!-- Rail 1: Featured Games -->
+            <div class="rail-section">
+                <div class="rail-title">Featured Titles</div>
+                <div class="horizontal-rail" id="railFeatured"></div>
+            </div>
+
+            <!-- Rail 2: Action & Arcade -->
+            <div class="rail-section">
+                <div class="rail-title">Action & Arcade</div>
+                <div class="horizontal-rail" id="railAction"></div>
+            </div>
+
+            <!-- Rail 3: Strategy & Puzzles -->
+            <div class="rail-section">
+                <div class="rail-title">Strategy & Classics</div>
+                <div class="horizontal-rail" id="railStrategy"></div>
+            </div>
         </div>
     </div>
 
@@ -175,42 +229,48 @@
     </div>
 
     <script>
-        // Replace these with your actual GamePix game titles, thumbnails, and URLs
-        const gameCatalog = [
-            {
-                title: "Action Game Title 1",
-                thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=D.A.P+Gaming",
-                url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID"
-            },
-            {
-                title: "Arcade Game Title 2",
-                thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=D.A.P+Gaming",
-                url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID"
-            },
-            {
-                title: "Strategy Game Title 3",
-                thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=D.A.P+Gaming",
-                url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID"
-            }
+        // Sample game catalog split into categories for the Xbox horizontal dashboard layout
+        const featuredGames = [
+            { title: "Cyber Strike Pro", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Cyber+Strike", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
+            { title: "Neon Velocity", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Neon+Velocity", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
+            { title: "Shadow Runner X", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Shadow+Runner", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" }
         ];
 
-        function renderGameGrid() {
-            const container = document.getElementById('gameGridContainer');
+        const actionGames = [
+            { title: "Pixel Battlegrounds", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Pixel+Battle", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
+            { title: "Speedway Nitro", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Speedway+Nitro", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
+            { title: "Galaxy Defender", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Galaxy+Defender", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" }
+        ];
+
+        const strategyGames = [
+            { title: "Tower Defense Elite", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Tower+Defense", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
+            { title: "Crypto Puzzle Master", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Puzzle+Master", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" },
+            { title: "Gold Rush Tactics", thumbnail: "https://via.placeholder.com/300x150/111/d4af37?text=Gold+Rush", url: "https://games.gamepix.com/play/YOUR_GAME_ID?sid=YOUR_AFFILIATE_ID" }
+        ];
+
+        function populateRail(containerId, gamesArray) {
+            const container = document.getElementById(containerId);
             container.innerHTML = '';
 
-            gameCatalog.forEach((game) => {
+            gamesArray.forEach((game) => {
                 const card = document.createElement('div');
                 card.className = 'game-card';
                 card.innerHTML = `
                     <img src="${game.thumbnail}" class="game-thumbnail" alt="${game.title}">
                     <div class="game-info">
                         <h3 class="game-title">${game.title}</h3>
-                        <div class="play-btn">PLAY</div>
+                        <div class="play-btn">PLAY NOW</div>
                     </div>
                 `;
                 card.onclick = () => launchGameSession(game.title, game.url);
                 container.appendChild(card);
             });
+        }
+
+        function renderDashboard() {
+            populateRail('railFeatured', featuredGames);
+            populateRail('railAction', actionGames);
+            populateRail('railStrategy', strategyGames);
         }
 
         function launchGameSession(title, url) {
@@ -231,7 +291,7 @@
             overlay.style.display = 'none';
         }
 
-        window.onload = renderGameGrid;
+        window.onload = renderDashboard;
     </script>
 </body>
 </html>
