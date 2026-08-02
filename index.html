@@ -205,9 +205,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            /* Anti-pixelation smoothing filter applied */
             image-rendering: auto;
-            filter: contrast(1.03) saturate(1.05);
             transition: transform 0.3s ease;
         }
 
@@ -343,7 +341,7 @@
             }, 4000);
             
             renderFeaturedRail();
-            fetchAndAutoBuildCategories();
+            fetchAllPagesCatalog();
         });
 
         const featuredGames = [
@@ -360,19 +358,24 @@
             });
         }
 
-        function fetchAndAutoBuildCategories() {
-            // Increased pagination from 96 to 250 to pull a much larger pool of games
-            const feedUrl = "https://feeds.gamepix.com/v2/json?sid=R7K2K&pagination=250&page=1";
-
-            fetch(feedUrl)
-                .then(response => response.json())
-                .then(data => {
+        // Multi-page fetcher to safely gather multiple pages and combine hundreds of titles
+        async function fetchAllPagesCatalog() {
+            let allGames = [];
+            try {
+                // Fetch Page 1 and Page 2 sequentially using safe pagination limits
+                for (let page = 1; page <= 2; page++) {
+                    const feedUrl = `https://feeds.gamepix.com/v2/json?sid=R7K2K&pagination=96&page=${page}`;
+                    const response = await fetch(feedUrl);
+                    const data = await response.json();
                     const gamesList = Array.isArray(data) ? data : (data.data || data.items || []);
-                    organizeAndBuildRails(gamesList);
-                })
-                .catch(error => {
-                    console.error("Error fetching live GamePix feed:", error);
-                });
+                    
+                    if (gamesList.length === 0) break;
+                    allGames.push(...gamesList);
+                }
+                organizeAndBuildRails(allGames);
+            } catch (error) {
+                console.error("Error fetching multi-page GamePix feed:", error);
+            }
         }
 
         function normalizeCategoryName(raw) {
@@ -426,17 +429,17 @@
                 gamesList.forEach(game => {
                     const title = game.title || game.name || "Untitled Game";
                     
+                    // High-resolution image selection with clean fallback for low-res legacy assets
                     let rawImg = game.cover || game.image || game.thumbnailUrl || game.thumbnail_url || game.thumbnail || "";
                     
                     if (rawImg) {
-                        // Clean up image links to target higher resolution assets
                         rawImg = rawImg.replace(/100x100/g, '800x450')
                                        .replace(/250x250/g, '800x450');
                         if (rawImg.startsWith('//')) {
                             rawImg = 'https:' + rawImg;
                         }
                     } else {
-                        rawImg = 'https://via.placeholder.com/500x250/111/d4af37?text=D.A.P+Gaming';
+                        rawImg = '';
                     }
 
                     const url = game.url || game.link || "#";
@@ -452,9 +455,14 @@
         function createGameCard(title, thumbnail, url) {
             const card = document.createElement('div');
             card.className = 'game-card';
+            
+            // Smart image error handler: if a raw thumbnail fails or is too pixelated/broken, replace cleanly with a branded dark gold card graphic
+            const fallbackImg = 'https://via.placeholder.com/500x250/111111/d4af37?text=' + encodeURIComponent(title);
+            const activeThumb = thumbnail ? thumbnail : fallbackImg;
+
             card.innerHTML = `
                 <div class="game-thumbnail-container">
-                    <img src="${thumbnail}" class="game-thumbnail" alt="${title}" loading="lazy" onerror="this.src='https://via.placeholder.com/500x250/111/d4af37?text=D.A.P+Gaming'">
+                    <img src="${activeThumb}" class="game-thumbnail" alt="${title}" loading="lazy" onerror="this.src='https://via.placeholder.com/500x250/111111/d4af37?text=D.A.P+Gaming'">
                 </div>
                 <div class="game-info">
                     <h3 class="game-title">${title}</h3>
