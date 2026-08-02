@@ -312,7 +312,7 @@
             background: #333;
         }
 
-        /* True Edge-to-Edge Fullscreen Game Overlay */
+        /* True Fullscreen Game Overlay with Smart Auto-Hide Exit Button */
         #game-overlay {
             position: fixed;
             top: 0; left: 0;
@@ -320,6 +320,37 @@
             background: #000000;
             display: none;
             z-index: 99999;
+        }
+
+        .floating-exit-btn {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            background: rgba(139, 0, 0, 0.9);
+            color: white;
+            border: 2px solid #d4af37;
+            padding: 8px 16px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            border-radius: 6px;
+            cursor: pointer;
+            z-index: 100000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease, background 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+        }
+
+        /* Reveal the exit button when hovering near the top-right of the screen */
+        #game-overlay:hover .floating-exit-btn {
+            opacity: 0.85;
+            visibility: visible;
+        }
+
+        .floating-exit-btn:hover {
+            opacity: 1 !important;
+            background: #b22222;
         }
 
         #game-iframe {
@@ -376,8 +407,9 @@
         </div>
     </div>
 
-    <!-- Edge-to-Edge Active Game Overlay Modal -->
-    <div id="game-overlay">
+    <!-- True Fullscreen Game Overlay with Smart Auto-Hide Exit Button -->
+    <div id="game-overlay" ontouchstart="revealExitButtonMobile()">
+        <button id="exitBtn" class="floating-exit-btn" onclick="closeGameSession()">✕ EXIT ARCADE</button>
         <iframe id="game-iframe" src="" allowfullscreen></iframe>
     </div>
 
@@ -409,7 +441,7 @@
             });
         }
 
-        // Multi-page fetcher expanded to pull 5 full pages (pushing past 400+ titles)
+        // Multi-page fetcher pulling 5 full pages (400+ titles)
         async function fetchAllPagesCatalog() {
             let allGames = [];
             try {
@@ -517,7 +549,6 @@
                     <div class="play-btn">PLAY NOW</div>
                 </div>
             `;
-            // Trigger custom disclaimer modal before launching the game session
             card.onclick = () => promptDisclaimer(url);
             return card;
         }
@@ -552,6 +583,25 @@
 
             iframe.src = cleanUrl;
             overlay.style.display = 'block';
+        }
+
+        function closeGameSession() {
+            const overlay = document.getElementById('game-overlay');
+            const iframe = document.getElementById('game-iframe');
+
+            iframe.src = '';
+            overlay.style.display = 'none';
+        }
+
+        // Mobile tap helper to briefly reveal exit button on touch screens
+        function revealExitButtonMobile() {
+            const btn = document.getElementById('exitBtn');
+            btn.style.opacity = '1';
+            btn.style.visibility = 'visible';
+            setTimeout(() => {
+                btn.style.opacity = '0';
+                btn.style.visibility = 'hidden';
+            }, 3500);
         }
     </script>
 </body>
