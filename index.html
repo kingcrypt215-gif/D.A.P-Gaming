@@ -183,10 +183,11 @@
             flex-direction: column;
         }
 
-        .game-card:hover {
+        .game-card:hover, .game-card:focus {
             border-color: #d4af37;
             transform: scale(1.04);
             box-shadow: 0 10px 25px rgba(212, 175, 55, 0.25);
+            outline: none;
             z-index: 10;
         }
 
@@ -208,7 +209,7 @@
             transition: transform 0.3s ease;
         }
 
-        .game-card:hover .game-thumbnail {
+        .game-card:hover .game-thumbnail, .game-card:focus .game-thumbnail {
             transform: scale(1.08);
         }
 
@@ -322,35 +323,35 @@
             z-index: 99999;
         }
 
-        /* Completely hidden by default, pops in only when hovering near top-right */
+        /* Floating Exit Button with TV D-Pad Focus Support */
         .floating-exit-btn {
             position: fixed;
             top: 15px;
             right: 20px;
-            background: rgba(139, 0, 0, 0.9);
+            background: rgba(139, 0, 0, 0.95);
             color: white;
             border: 2px solid #d4af37;
-            padding: 8px 16px;
+            padding: 10px 18px;
             font-weight: bold;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             letter-spacing: 1px;
             border-radius: 6px;
             cursor: pointer;
-            z-index: 100000;
+            z-index: 100005;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease, background 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.9);
         }
 
-        .floating-exit-btn.visible {
-            opacity: 0.9;
+        .floating-exit-btn.visible, .floating-exit-btn:focus {
+            opacity: 1;
             visibility: visible;
         }
 
-        .floating-exit-btn:hover {
-            opacity: 1 !important;
+        .floating-exit-btn:hover, .floating-exit-btn:focus {
             background: #b22222;
+            outline: 3px solid #ffffff;
         }
 
         #game-iframe {
@@ -358,6 +359,15 @@
             height: 100%;
             border: none;
             display: block;
+        }
+
+        /* Touch / Remote Corner Trigger Zone */
+        #touch-helper-zone {
+            position: fixed;
+            top: 0; right: 0;
+            width: 140px; height: 140px;
+            z-index: 100004;
+            display: none;
         }
     </style>
 </head>
@@ -407,11 +417,12 @@
         </div>
     </div>
 
-    <!-- Independent Fullscreen Game Overlay & Edge-Triggered Exit Button -->
-    <div id="game-overlay" ontouchstart="revealExitButtonMobile()">
-        <iframe id="game-iframe" src="" allowfullscreen></iframe>
+    <!-- Independent Fullscreen Game Overlay & Exit Controls -->
+    <div id="game-overlay">
+        <iframe id="game-iframe" src="" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe>
     </div>
-    <button id="exitBtn" class="floating-exit-btn" onclick="closeGameSession()">✕ EXIT ARCADE</button>
+    <div id="touch-helper-zone" ontouchstart="toggleExitButtonMobile(event)"></div>
+    <button id="exitBtn" class="floating-exit-btn" tabindex="0" onclick="closeGameSession()">✕ EXIT ARCADE</button>
 
     <script>
         window.addEventListener('load', () => {
@@ -536,6 +547,7 @@
         function createGameCard(title, thumbnail, url) {
             const card = document.createElement('div');
             card.className = 'game-card';
+            card.setAttribute('tabindex', '0'); // Make cards focusable via TV remotes & controllers
             
             const fallbackImg = 'https://via.placeholder.com/500x250/111111/d4af37?text=' + encodeURIComponent(title);
             const activeThumb = thumbnail ? thumbnail : fallbackImg;
@@ -550,6 +562,11 @@
                 </div>
             `;
             card.onclick = () => promptDisclaimer(url);
+            card.onkeydown = (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    promptDisclaimer(url);
+                }
+            };
             return card;
         }
 
@@ -573,6 +590,7 @@
         function launchGameSession(url) {
             const overlay = document.getElementById('game-overlay');
             const iframe = document.getElementById('game-iframe');
+            const touchZone = document.getElementById('touch-helper-zone');
 
             let cleanUrl = url;
             if (cleanUrl.includes('?')) {
@@ -583,25 +601,32 @@
 
             iframe.src = cleanUrl;
             overlay.style.display = 'block';
+            touchZone.style.display = 'block';
+
+            // Auto-focus the game iframe so gamepads and keyboard inputs pipe directly into the game
+            setTimeout(() => {
+                iframe.focus();
+            }, 500);
         }
 
         function closeGameSession() {
             const overlay = document.getElementById('game-overlay');
             const iframe = document.getElementById('game-iframe');
             const btn = document.getElementById('exitBtn');
+            const touchZone = document.getElementById('touch-helper-zone');
 
             iframe.src = '';
             overlay.style.display = 'none';
+            touchZone.style.display = 'none';
             btn.classList.remove('visible');
         }
 
-        // Smart Mouse Listener: Only show exit button when cursor moves near top-right corner during gameplay
+        // Desktop Mouse Listener
         document.addEventListener('mousemove', (e) => {
             const overlay = document.getElementById('game-overlay');
             if (overlay.style.display === 'block') {
                 const btn = document.getElementById('exitBtn');
-                // Triggers when mouse is within 120px of the top and 200px of the right edge
-                if (e.clientY < 120 && e.clientX > window.innerWidth - 200) {
+                if (e.clientY < 100 || e.clientX > window.innerWidth - 150) {
                     btn.classList.add('visible');
                 } else {
                     btn.classList.remove('visible');
@@ -609,14 +634,37 @@
             }
         });
 
-        // Mobile touch helper to briefly reveal exit button on tap
-        function revealExitButtonMobile() {
+        // Mobile Touch Toggle
+        function toggleExitButtonMobile(e) {
+            e.stopPropagation();
             const btn = document.getElementById('exitBtn');
-            btn.classList.add('visible');
-            setTimeout(() => {
-                btn.classList.remove('visible');
-            }, 3000);
+            btn.classList.toggle('visible');
         }
+
+        // Global 2-Finger Touch Backup
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                const overlay = document.getElementById('game-overlay');
+                if (overlay.style.display === 'block') {
+                    const btn = document.getElementById('exitBtn');
+                    btn.classList.toggle('visible');
+                }
+            }
+        }, { passive: true });
+
+        // TV Remote & Game Controller Key Listener
+        document.addEventListener('keydown', (e) => {
+            const overlay = document.getElementById('game-overlay');
+            if (overlay.style.display === 'block') {
+                if (e.key === 'Escape' || e.key === 'BrowserBack' || e.keyCode === 8 || e.keyCode === 27) {
+                    closeGameSession();
+                } else if (e.key === 'ArrowUp' || e.key === 'ContextMenu') {
+                    const btn = document.getElementById('exitBtn');
+                    btn.classList.add('visible');
+                    btn.focus();
+                }
+            }
+        });
     </script>
 </body>
 </html>
