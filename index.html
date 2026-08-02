@@ -313,7 +313,7 @@
             background: #333;
         }
 
-        /* IN-GAME EXIT / RESUME PROMPT MODAL */
+        /* IN-GAME EXIT / RESUME CHOICE MODAL */
         #exit-prompt-modal {
             position: fixed;
             top: 0; left: 0;
@@ -482,6 +482,7 @@
         ];
 
         let pendingGameUrl = "";
+        let gamepadInterval = null;
 
         function renderFeaturedRail() {
             const container = document.getElementById('railFeatured');
@@ -640,8 +641,11 @@
             iframe.src = cleanUrl;
             overlay.style.display = 'block';
 
-            // Push a fake state into browser history so mobile "swipe back" or browser "back" triggers our prompt instead of leaving the site
+            // Push a fake state into history so mobile swipe-back triggers our prompt
             history.pushState({ inGame: true }, '', '#play');
+
+            // Start polling game controllers for Home/Start button presses
+            startGamepadPolling();
 
             setTimeout(() => {
                 iframe.focus();
@@ -650,10 +654,8 @@
 
         function resumeGameSession() {
             document.getElementById('exit-prompt-modal').style.display = 'none';
-            // Re-push history state so the back gesture works again next time
             history.pushState({ inGame: true }, '', '#play');
             
-            // Refocus game iframe
             setTimeout(() => {
                 document.getElementById('game-iframe').focus();
             }, 200);
@@ -664,20 +666,43 @@
             const overlay = document.getElementById('game-overlay');
             const iframe = document.getElementById('game-iframe');
 
+            if (gamepadInterval) clearInterval(gamepadInterval);
+
             iframe.src = '';
             overlay.style.display = 'none';
         }
 
-        // Intercept Mobile Swipe-Back, Browser Back Buttons, and TV/Gamepad Back Inputs
+        // Poll game controllers specifically for Home Button (Index 8) or Start Button (Index 9)
+        let homeButtonPressedLast = false;
+        function startGamepadPolling() {
+            if (gamepadInterval) clearInterval(gamepadInterval);
+
+            gamepadInterval = setInterval(() => {
+                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+                for (let gp of gamepads) {
+                    if (gp) {
+                        // Button 8 is typically the Xbox/PlayStation/Home Guide button, Button 9 is Start/Options
+                        const isHomePressed = (gp.buttons[8] && gp.buttons[8].pressed) || (gp.buttons[9] && gp.buttons[9].pressed);
+                        
+                        if (isHomePressed && !homeButtonPressedLast) {
+                            // Trigger pause/exit menu
+                            document.getElementById('exit-prompt-modal').style.display = 'flex';
+                        }
+                        homeButtonPressedLast = isHomePressed;
+                    }
+                }
+            }, 100);
+        }
+
+        // Intercept Mobile Swipe-Back & Browser Back Buttons
         window.addEventListener('popstate', (e) => {
             const overlay = document.getElementById('game-overlay');
             if (overlay.style.display === 'block') {
-                // Show our clean choice menu instead of instantly exiting
                 document.getElementById('exit-prompt-modal').style.display = 'flex';
             }
         });
 
-        // TV Remote & Game Controller Key Listener (Escape / BrowserBack / Controller B Button mapping)
+        // Keyboard Escape Key Interceptor (for PC/TV Keyboards)
         document.addEventListener('keydown', (e) => {
             const overlay = document.getElementById('game-overlay');
             if (overlay.style.display === 'block') {
